@@ -36,13 +36,14 @@ export default function Register() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
 
-    if (!nameRef.current?.value || !emailRef.current?.value || !phoneRef.current?.value || !addressRef.current?.value) return;
+    if (!nameRef.current?.value || !emailRef.current?.value || !phoneRef.current?.value || !addressRef.current?.value || !passwordRef.current?.value) return;
 
     const response = await api.post("/user", {
       name: nameRef.current.value,
       email: emailRef.current.value,
       phone: phoneRef.current.value,
       address: addressRef.current.value,
+      password: passwordRef.current?.value
     });
     setUser(allUser => [...allUser, response.data]);
 
@@ -50,6 +51,7 @@ export default function Register() {
     emailRef.current.value = "";
     phoneRef.current.value = "";
     addressRef.current.value = "";
+    passwordRef.current.value = "";
   }
 
   async function handleDelete(id: string) {
