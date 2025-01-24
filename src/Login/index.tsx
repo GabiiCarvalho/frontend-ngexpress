@@ -1,11 +1,17 @@
 import { FormEvent, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../service/api";
+import { toast, ToastContainer } from 'react-toastify';
+
 
 export default function Login() {
   const emailRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
+
+  const notify = () => {
+    toast.success("BEM-VINDO(A)!");
+  };
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -19,7 +25,7 @@ export default function Login() {
       });
 
       localStorage.setItem("authToken", response.data.token);
-      alert("Login realizado com sucesso!");
+      notify();
       navigate("/home");
     } catch (error) {
       console.error("Erro ao fazer login:", error);
@@ -65,6 +71,7 @@ export default function Login() {
           </p>
         </div>
       </main>
+      <ToastContainer />
     </div>
   );
 }

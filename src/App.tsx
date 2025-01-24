@@ -3,6 +3,7 @@ import Home from './Home';
 import Register from './Register';
 import Login from './Login';
 
+
 export default function App() {
   return (
     <div className="w-full min-h-screen bg-gray-950 flex justify-center px-4">

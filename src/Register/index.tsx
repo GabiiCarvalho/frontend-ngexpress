@@ -2,6 +2,8 @@ import { FiTrash } from 'react-icons/fi';
 import api from "../service/api";
 import { useEffect, useState, useRef, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast, ToastContainer } from 'react-toastify';
+
 
 interface UserProps {
   id: string;
@@ -22,6 +24,10 @@ export default function Register() {
   const addressRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
 
+  const notify = () => {
+    toast.success("BEM-VINDO(A)!");
+  };
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -38,30 +44,28 @@ export default function Register() {
 
     if (!nameRef.current?.value || !emailRef.current?.value || !phoneRef.current?.value || !addressRef.current?.value || !passwordRef.current?.value) return;
 
-    const response = await api.post("/user", {
-      name: nameRef.current.value,
-      email: emailRef.current.value,
-      phone: phoneRef.current.value,
-      address: addressRef.current.value,
-      password: passwordRef.current?.value
-    });
-    setUser(allUser => [...allUser, response.data]);
-
-    nameRef.current.value = "";
-    emailRef.current.value = "";
-    phoneRef.current.value = "";
-    addressRef.current.value = "";
-    passwordRef.current.value = "";
-  }
-
-  async function handleDelete(id: string) {
     try {
-      await api.delete("/user", { params: { id } });
+      const response = await api.post("/user", {
+        name: nameRef.current.value,
+        email: emailRef.current.value,
+        phone: phoneRef.current.value,
+        address: addressRef.current.value,
+        password: passwordRef.current?.value
+      });
+      setUser(allUser => [...allUser, response.data]);
 
-      const allUser = user.filter(user => user.id !== id);
-      setUser(allUser);
-    } catch (err) {
-      console.log(err);
+
+      nameRef.current.value = "";
+      emailRef.current.value = "";
+      phoneRef.current.value = "";
+      addressRef.current.value = "";
+      passwordRef.current.value = "";
+
+      notify();
+      
+      navigate("/login");
+    } catch (error) {
+      console.error("Erro ao cadastrar usuário:", error);
     }
   }
 
@@ -106,7 +110,6 @@ export default function Register() {
             className="w-full mb-5 p-2 rounded"
             ref={passwordRef}
           />
-
           <input
             type="submit"
             value="Cadastrar"
@@ -127,6 +130,8 @@ export default function Register() {
           </p>
         </div>
       </main>
+
+      <ToastContainer />
     </div>
   );
 }
