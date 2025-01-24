@@ -117,7 +117,7 @@ export default function Register() {
         {/* Link para página de login */}
         <div className="mt-4 text-center">
           <p className="text-white">
-            Não possui conta?{" "}
+            Já possuí conta?{" "}
             <span
               onClick={() => navigate("/login")}
               className="text-orange-500 cursor-pointer hover:underline"
