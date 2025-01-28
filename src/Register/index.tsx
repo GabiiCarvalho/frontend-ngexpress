@@ -2,7 +2,6 @@ import { FiTrash } from 'react-icons/fi';
 import api from "../service/api";
 import { useEffect, useState, useRef, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { toast, ToastContainer } from 'react-toastify';
 
 
 interface UserProps {
@@ -23,10 +22,6 @@ export default function Register() {
   const phoneRef = useRef<HTMLInputElement | null>(null);
   const addressRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
-
-  const notify = () => {
-    toast.success("BEM-VINDO(A)!");
-  };
 
   const navigate = useNavigate();
 
@@ -60,8 +55,6 @@ export default function Register() {
       phoneRef.current.value = "";
       addressRef.current.value = "";
       passwordRef.current.value = "";
-
-      notify();
       
       navigate("/login");
     } catch (error) {
@@ -131,7 +124,6 @@ export default function Register() {
         </div>
       </main>
 
-      <ToastContainer />
     </div>
   );
 }
