@@ -2,6 +2,7 @@ import { BrowserRouter, Link, Route, Router, Routes } from 'react-router-dom';
 import Home from './Home';
 import Register from './Register';
 import Login from './Login';
+import Delivery from './Pages/Delivery';
 
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/delivery" element={<Delivery />} />
           </Routes>
         </BrowserRouter>
       </main>

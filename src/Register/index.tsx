@@ -1,5 +1,5 @@
 import { FiTrash } from 'react-icons/fi';
-import api from "../service/api";
+import { api } from "../service/api"
 import { useEffect, useState, useRef, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 

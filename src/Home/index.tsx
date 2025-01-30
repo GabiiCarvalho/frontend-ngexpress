@@ -33,7 +33,7 @@ function Home() {
       title: 'Gestão de Pedidos',
       items: [
         { name: 'Rastreamento de Pedidos', link: '/rastreamento-pedidos' },
-        { name: 'Solicitação de Entregas', link: '/FormularioFrete' },
+        { name: 'Solicitação de Entregas', link: '/Delivery' },
       ],
     },
     {
