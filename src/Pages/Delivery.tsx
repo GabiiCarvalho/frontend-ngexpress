@@ -1,145 +1,172 @@
-import { api } from "../service/api"
+import { api } from "../service/api";
 import { useEffect, useState, useRef, FormEvent } from "react";
 import { FiTrash } from "react-icons/fi";
-import { Link } from "react-router-dom"; 
+import { Link } from "react-router-dom";
 
 interface DeliveryProps {
   id: string;
-  cidade: string;
-  cep: string;
+  cidadePartida: string;
+  cidadeDestino: string;
   tarifaBase: number;
-  latitude: number;
-  longitude: number;
 }
+
+// Lista fixa de cidades válidas (deve corresponder ao backend)
+const CIDADES_VALIDAS = [
+  "Araquari", "Ararangua", "Apiúna", "Balneário Camboriú", "Biguaçu",
+  "Blumenau", "Barra Velha", "Bombinhas", "Brusque", "Camboriú",
+  "Canelinha", "Florianópolis", "Gaspar", "Gravatá", "Itajaí",
+  "Itapema", "Ilhota", "Joinville", "Jaraguá do Sul", "Luiz Alves",
+  "Lages", "Navegantes", "Mariscal", "Porto Belo", "Palhoça", "Penha", "Rio do Sul",
+  "São João Batista", "São José", "Tijucas"
+];
 
 export default function Delivery() {
   const [delivery, setDelivery] = useState<DeliveryProps[]>([]);
-
-  const cidadeRef = useRef<HTMLInputElement | null>(null);
-  const cepRef = useRef<HTMLInputElement | null>(null);
-  const tarifaBaseRef = useRef<HTMLInputElement | null>(null);
-  const latitudeRef = useRef<HTMLInputElement | null>(null);
-  const longitudeRef = useRef<HTMLInputElement | null>(null);
+  const cidadePartidaRef = useRef<HTMLInputElement | null>(null);
+  const cidadeDestinoRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     loadDelivery();
   }, []);
 
   async function loadDelivery() {
-    const response = await api.get("/delivery")
-    setDelivery(response.data);
+    try {
+      const response = await api.get("/pedido");
+      setDelivery(response.data.map((item: any) => ({
+        id: item._id,
+        cidadePartida: item.cidadePartida,
+        cidadeDestino: item.cidadeDestino,
+        tarifaBase: item.tarifaBase ?? 0
+      })));
+    } catch (error) {
+      console.error("Erro ao carregar entregas:", error);
+    }
   }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
 
-    if (
-      !cidadeRef.current?.value ||
-      !cepRef.current?.value ||
-      !tarifaBaseRef.current?.value ||
-      !latitudeRef.current?.value ||
-      !longitudeRef.current?.value
-    )
+    const partida = cidadePartidaRef.current?.value?.trim() || '';
+    const destino = cidadeDestinoRef.current?.value?.trim() || '';
+
+    if (!partida || !destino) {
+      alert("Preencha todos os campos!");
       return;
+    }
 
     try {
-      const response = await api.post("/delivery", {
-        cidade: cidadeRef.current?.value,
-        cep: cepRef.current?.value       
-      });
-      setDelivery((allDelivery) => [...allDelivery, response.data]);
+      // Validação case-insensitive
+      const cidadeValidaPartida = CIDADES_VALIDAS.some(
+        c => c.toLowerCase() === partida.toLowerCase()
+      );
+      
+      const cidadeValidaDestino = CIDADES_VALIDAS.some(
+        c => c.toLowerCase() === destino.toLowerCase()
+      );
 
-      cidadeRef.current.value = "";
-      cepRef.current.value = "";
-      tarifaBaseRef.current.value = "";
-      latitudeRef.current.value = "";
-      longitudeRef.current.value = "";
+      if (!cidadeValidaPartida || !cidadeValidaDestino) {
+        alert("Uma ou ambas as cidades não são válidas!");
+        return;
+      }
+
+      // Encontra o nome exato da cidade
+      const cidadeExataPartida = CIDADES_VALIDAS.find(
+        c => c.toLowerCase() === partida.toLowerCase()
+      )!;
+
+      const cidadeExataDestino = CIDADES_VALIDAS.find(
+        c => c.toLowerCase() === destino.toLowerCase()
+      )!;
+
+      const response = await api.post("/pedido", {
+        cidadePartida: cidadeExataPartida,
+        cidadeDestino: cidadeExataDestino
+      });
+
+      setDelivery(prev => [...prev, {
+        id: response.data._id,
+        cidadePartida: response.data.cidadePartida,
+        cidadeDestino: response.data.cidadeDestino,
+        tarifaBase: response.data.tarifaBase
+      }]);
+
+      if (cidadePartidaRef.current) cidadePartidaRef.current.value = "";
+      if (cidadeDestinoRef.current) cidadeDestinoRef.current.value = "";
     } catch (error) {
-      console.error("erro ao criar pedido", error);
+      console.error("Erro ao criar pedido:", error);
+      alert("Erro ao criar pedido! Verifique o console para mais detalhes.");
     }
   }
 
   async function handleDelete(id: string) {
     try {
-      await api.delete("/delivery", {
-        params:{
-          id: id,
-        }
-      })
-      const allDelivery = delivery.filter((delivery) => delivery.id !== id );
-      setDelivery(allDelivery)
-    } catch(error){
-
+      if (!window.confirm("Tem certeza que deseja excluir este pedido?")) return;
+      await api.delete("/pedido", {
+        params: { id }
+      });
+      setDelivery((prevDelivery) => prevDelivery.filter((item) => item.id !== id));
+    } catch (error) {
+      console.error("Erro ao excluir pedido", error);
     }
   }
 
   return (
-    <div className="w-full min-h-screen bg-gray-950 flex justify-center px4">
+    <div className="w-full min-h-screen bg-gray-950 flex justify-center px-4">
       <main className="my-10 w-full md:max-w-2xl">
-        <h1 className="text 4xl font-medium text-white text-center mb-6">Solicitação de Pedidos</h1>
-        <Link to="/" className="text-white hover:underline rounded bg-orange-500 cursor-pointer w-full p-2">Voltar</Link>
+        <h1 className="text-4xl font-medium text-white text-center mb-6">Solicitação de Pedidos</h1>
+        <Link to="/" className="block text-center text-white hover:underline rounded bg-orange-500 cursor-pointer w-full p-2 mb-4">
+          Voltar
+        </Link>
+
         <form className="flex flex-col my-6" onSubmit={handleSubmit}>
-          <label className="font-medium text-white">Cidade:</label>
-          <input 
-            type="text"
-            placeholder="Balneário Camboriú"
-            className="w-full mb-5 p-2 rounded"
-            ref={cidadeRef}
-          />
-          <label className="font-medium text-white">CEP:</label>
-          <input 
-            type="text"
-            placeholder="88050-000"
-            className="w-full mb-5 p-2 rounded"
-            ref={cepRef}
-          />
-          <label className="font-medium text-white">Tarifa:</label>
-          <input 
-            type="number"
-            placeholder="10.00"
-            className="w-full mb-5 p-2 rounded"
-            ref={tarifaBaseRef}
-          />
-          <label className="font-medium text-white">Latitude:</label>
+          <label className="font-medium text-white">Cidade de Partida:</label>
           <input
-          type="number"
-          placeholder="10.00"
-          className="w-full mb-5 p-2 rounded"
-          ref={latitudeRef}
-          />
-          <label className="font-medium text-white">Longitude</label>
-          <input 
-            type="number"
-            placeholder="10.00"
+            type="text"
+            placeholder="Ex: Balneário Camboriú"
             className="w-full mb-5 p-2 rounded"
-            ref={longitudeRef}
-          />*
+            ref={cidadePartidaRef}
+            list="cidadesList"
+          />
+          
+          <label className="font-medium text-white">Cidade de Destino:</label>
+          <input
+            type="text"
+            placeholder="Ex: Florianópolis"
+            className="w-full mb-5 p-2 rounded"
+            ref={cidadeDestinoRef}
+            list="cidadesList"
+          />
+
+          <datalist id="cidadesList">
+            {CIDADES_VALIDAS.map((cidade, index) => (
+              <option key={index} value={cidade} />
+            ))}
+          </datalist>
+
           <input
             type="submit"
             value="Solicitar"
-            className="cursor-pointer w-full p-2 bg-green-500 rounded font-medium"
+            className="cursor-pointer w-full p-2 bg-green-500 rounded font-medium hover:bg-green-600 transition-colors"
           />
         </form>
-        <section className="flex flex-col gap-4">       
 
-          {delivery.map((delivery) => (
-          <article 
-          key={delivery.id}
-          className="w-full bg-white rounded p-2 relative hover:scale-105 duration-200">
-            <p><span>Cidade: </span>{delivery.cidade}</p>
-            <p><span>CEP: </span>{delivery.cep}</p>
-            <p><span>Tarifa: </span>{delivery.tarifaBase}</p>
-            <p><span>Latitude: </span>{delivery.latitude}</p>
-            <p><span>Longitude: </span>{delivery.longitude}</p>
-            <button 
-            onClick={() => handleDelete(delivery.id)}
-            className="bg-red-800 w-7 h-7 flex items-center justify-center rounded-lg absolute right-0 -top-2">
-              <FiTrash size={18} color="#FFF"  />
-            </button>
-          </article>
+        <section className="flex flex-col gap-4">
+          {delivery.map((item) => (
+            <article
+              key={item.id}
+              className="w-full bg-white rounded p-2 relative hover:scale-105 duration-200">
+              <p><span className="font-medium">Cidade de Partida: </span>{item.cidadePartida}</p>
+              <p><span className="font-medium">Cidade de Destino: </span>{item.cidadeDestino}</p>
+              <p><span className="font-medium">Tarifa: </span>R$ {item.tarifaBase.toFixed(2)}</p>
+              <button
+                onClick={() => handleDelete(item.id)}
+                className="bg-red-600 w-7 h-7 flex items-center justify-center rounded-lg absolute right-0 -top-2 hover:bg-red-700 transition-colors">
+                <FiTrash size={18} color="#FFF" />
+              </button>
+            </article>
           ))}
         </section>
       </main>
     </div>
-  )
+  );
 }
