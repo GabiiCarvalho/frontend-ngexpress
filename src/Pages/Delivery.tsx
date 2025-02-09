@@ -6,7 +6,9 @@ import { Link } from "react-router-dom";
 interface DeliveryProps {
   id: string;
   cidadePartida: string;
+  enderecoPartida: string;
   cidadeDestino: string;
+  enderecoDestino: string;
   tarifaBase: number;
 }
 
@@ -23,7 +25,9 @@ const CIDADES_VALIDAS = [
 export default function Delivery() {
   const [delivery, setDelivery] = useState<DeliveryProps[]>([]);
   const cidadePartidaRef = useRef<HTMLInputElement | null>(null);
+  const enderecoPartidaRef = useRef<HTMLInputElement | null>(null);
   const cidadeDestinoRef = useRef<HTMLInputElement | null>(null);
+  const enderecoDestinoRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     loadDelivery();
@@ -32,10 +36,13 @@ export default function Delivery() {
   async function loadDelivery() {
     try {
       const response = await api.get("/pedido");
+      console.log("Dados da API: ", response.data);
       setDelivery(response.data.map((item: any) => ({
-        id: item._id,
+        id: item._id?.toString() || Math.random().toString(),
         cidadePartida: item.cidadePartida,
+        enderecoPartida: item.enderecoPartida,
         cidadeDestino: item.cidadeDestino,
+        enderecoDestino: item.enderecoDestino,
         tarifaBase: item.tarifaBase ?? 0
       })));
     } catch (error) {
@@ -47,9 +54,11 @@ export default function Delivery() {
     event.preventDefault();
 
     const partida = cidadePartidaRef.current?.value?.trim() || '';
+    const enderecoPartida = enderecoPartidaRef.current?.value?.trim() || '';
     const destino = cidadeDestinoRef.current?.value?.trim() || '';
+    const enderecoDestino = enderecoDestinoRef.current?.value?.trim() || '';
 
-    if (!partida || !destino) {
+    if (!partida || !destino || !enderecoPartida || !enderecoDestino) {
       alert("Preencha todos os campos!");
       return;
     }
@@ -59,7 +68,7 @@ export default function Delivery() {
       const cidadeValidaPartida = CIDADES_VALIDAS.some(
         c => c.toLowerCase() === partida.toLowerCase()
       );
-      
+
       const cidadeValidaDestino = CIDADES_VALIDAS.some(
         c => c.toLowerCase() === destino.toLowerCase()
       );
@@ -80,18 +89,25 @@ export default function Delivery() {
 
       const response = await api.post("/pedido", {
         cidadePartida: cidadeExataPartida,
-        cidadeDestino: cidadeExataDestino
+        enderecoPartida: enderecoPartida,
+        cidadeDestino: cidadeExataDestino,
+        enderecoDestino: enderecoDestino
       });
 
       setDelivery(prev => [...prev, {
         id: response.data._id,
         cidadePartida: response.data.cidadePartida,
+        enderecoPartida: response.data.enderecoPartida,
         cidadeDestino: response.data.cidadeDestino,
+        enderecoDestino: response.data.enderecoDestino,
         tarifaBase: response.data.tarifaBase
       }]);
 
       if (cidadePartidaRef.current) cidadePartidaRef.current.value = "";
+      if (enderecoPartidaRef.current) enderecoPartidaRef.current.value = "";
       if (cidadeDestinoRef.current) cidadeDestinoRef.current.value = "";
+      if (enderecoDestinoRef.current) enderecoDestinoRef.current.value = "";
+
     } catch (error) {
       console.error("Erro ao criar pedido:", error);
       alert("Erro ao criar pedido! Verifique o console para mais detalhes.");
@@ -101,12 +117,13 @@ export default function Delivery() {
   async function handleDelete(id: string) {
     try {
       if (!window.confirm("Tem certeza que deseja excluir este pedido?")) return;
-      await api.delete("/pedido", {
-        params: { id }
+      await api.delete(`/pedido/${id}`, {        
       });
       setDelivery((prevDelivery) => prevDelivery.filter((item) => item.id !== id));
     } catch (error) {
       console.error("Erro ao excluir pedido", error);
+
+      loadDelivery();
     }
   }
 
@@ -127,7 +144,15 @@ export default function Delivery() {
             ref={cidadePartidaRef}
             list="cidadesList"
           />
-          
+
+          <label className="font-medium text-white">Endereço:</label>
+          <input
+            type="text"
+            placeholder="Rua: Ex: Rua do Sol, Nº: Ex: 123"
+            className="w-full mb-5 p-2 rounded"
+            ref={enderecoPartidaRef}            
+          />
+
           <label className="font-medium text-white">Cidade de Destino:</label>
           <input
             type="text"
@@ -136,6 +161,13 @@ export default function Delivery() {
             ref={cidadeDestinoRef}
             list="cidadesList"
           />
+          <label className="font-medium text-white">Endereço:</label>
+          <input
+            type="text"
+            placeholder="Rua : Ex: Rua do Sol, Nº: Ex: 123"
+            className="w-full mb-5 p-2 rounded"
+            ref={enderecoDestinoRef}            
+          />       
 
           <datalist id="cidadesList">
             {CIDADES_VALIDAS.map((cidade, index) => (
@@ -156,7 +188,9 @@ export default function Delivery() {
               key={item.id}
               className="w-full bg-white rounded p-2 relative hover:scale-105 duration-200">
               <p><span className="font-medium">Cidade de Partida: </span>{item.cidadePartida}</p>
+              <p><span className="font-medium">Endereço de Partida: </span>{item.enderecoPartida}</p>
               <p><span className="font-medium">Cidade de Destino: </span>{item.cidadeDestino}</p>
+              <p><span className="font-medium">Endereço de Destino: </span>{item.enderecoDestino}</p>
               <p><span className="font-medium">Tarifa: </span>R$ {item.tarifaBase.toFixed(2)}</p>
               <button
                 onClick={() => handleDelete(item.id)}

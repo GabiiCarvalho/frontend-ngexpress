@@ -77,7 +77,7 @@ function Home() {
       >
         {list.map((item) => (
           <SwiperSlide key={item.id}>
-            <img src={item.image} alt="slider" className="slide-item w-full h-[350px] object-cover" />
+            <img src={item.image} alt="slider" className="slide-item w-full h-[500px] object-cover" />
           </SwiperSlide>
         ))}
       </Swiper>
