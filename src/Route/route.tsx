@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Login from "../Login/index";
-import Register from "../Register/index";
+import Login from "../Pages/Login/index";
+import Register from "../Pages/Register/index";
 
 export default function AppRoute() {
   return (

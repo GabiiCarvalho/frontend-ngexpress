@@ -1,17 +1,13 @@
-import { FormEvent, useRef } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api } from "../service/api"
-import { toast, ToastContainer } from 'react-toastify';
+import api from "../../service/api";
 
 
 export default function Login() {
   const emailRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
-
-  const notify = () => {
-    toast.success("BEM-VINDO(A)!");
-  };
+  const [error, setError] = useState("");
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -24,12 +20,13 @@ export default function Login() {
         password: passwordRef.current.value,
       });
 
-      localStorage.setItem("authToken", response.data.token);
-      notify();
-      navigate("/home");
-    } catch (error) {
-      console.error("Erro ao fazer login:", error);
-      alert("Credenciais inválidas.");
+      const { token, user } = response.data;
+      localStorage.setItem("token", token)
+      localStorage.setItem("user", JSON.stringify(user));
+
+      navigate("/");
+    } catch (err) {
+      setError("Email ou senha inválidos.");
     }
   }
 
@@ -70,8 +67,7 @@ export default function Login() {
             </span>
           </p>
         </div>
-      </main>
-      <ToastContainer />
+      </main>      
     </div>
   );
 }
