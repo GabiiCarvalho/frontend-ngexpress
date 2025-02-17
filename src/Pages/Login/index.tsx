@@ -13,7 +13,7 @@ export default function Login() {
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
     if (token) {
-      navigate("/Delivery");
+      navigate("/pedidos");
     }
   }, [navigate]);
 
@@ -47,7 +47,7 @@ export default function Login() {
         }
       });
 
-      navigate("/Delivery");
+      navigate("/pedidos");
     } catch (err: any) {
       console.error("Erro no login:", err);
       
