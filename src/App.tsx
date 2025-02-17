@@ -3,8 +3,8 @@ import Home from './Home';
 import Register from './Pages/Register';
 import Login from './Pages/Login';
 import Delivery from './Pages/Delivery/Delivery';
-import History from './Pages/History/History';
-import PaymentOptions from './components/PaymentOptions';
+import OrderHistory from './Pages/OrderHistory/OrderHistory';
+import ProtectedRoute from './components/ProtectedRoute';
 
 
 
@@ -21,8 +21,8 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/delivery" element={<Delivery />} />   
-            <Route path="/history" element={<History />} />   
+            <Route path="/delivery" element={<ProtectedRoute><Delivery /></ProtectedRoute>} />   
+            <Route path="/historico" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
 
           </Routes>
         </BrowserRouter>

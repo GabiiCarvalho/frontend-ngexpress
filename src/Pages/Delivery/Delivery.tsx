@@ -1,3 +1,4 @@
+import axios from "axios";
 import api from "../../service/api";
 import { useEffect, useState, useRef, FormEvent } from "react";
 import { FiTrash } from "react-icons/fi";
@@ -10,46 +11,64 @@ interface DeliveryProps {
   cidadeDestino: string;
   enderecoDestino: string;
   tarifaBase: number;
+  createdAt: Date;
 }
 
-const token = localStorage.getItem("jwtToken");
-
-// Lista fixa de cidades válidas (deve corresponder ao backend)
+// Lista fixa de cidades válidas
 const CIDADES_VALIDAS = [
   "Araquari", "Ararangua", "Apiúna", "Balneário Camboriú", "Biguaçu",
   "Blumenau", "Barra Velha", "Bombinhas", "Brusque", "Camboriú",
   "Canelinha", "Florianópolis", "Gaspar", "Gravatá", "Itajaí",
   "Itapema", "Ilhota", "Joinville", "Jaraguá do Sul", "Luiz Alves",
-  "Lages", "Navegantes", "Mariscal", "Porto Belo", "Palhoça", "Penha", "Rio do Sul",
-  "São João Batista", "São José", "Tijucas"
+  "Lages", "Navegantes", "Mariscal", "Porto Belo", "Palhoça", "Penha", 
+  "Rio do Sul", "São João Batista", "São José", "Tijucas"
 ];
 
 export default function Delivery() {
   const [delivery, setDelivery] = useState<DeliveryProps[]>([]);
-  const cidadePartidaRef = useRef<HTMLInputElement | null>(null);
-  const enderecoPartidaRef = useRef<HTMLInputElement | null>(null);
-  const cidadeDestinoRef = useRef<HTMLInputElement | null>(null);
-  const enderecoDestinoRef = useRef<HTMLInputElement | null>(null);
+  const cidadePartidaRef = useRef<HTMLInputElement>(null);
+  const enderecoPartidaRef = useRef<HTMLInputElement>(null);
+  const cidadeDestinoRef = useRef<HTMLInputElement>(null);
+  const enderecoDestinoRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadDelivery();
   }, []);
 
+  const getToken = () => localStorage.getItem("jwtToken");
+
   async function loadDelivery() {
+    const token = getToken();
+
+    if (!token) {
+      alert("Faça login para acessar!");
+      window.location.href = "/login";
+      return;
+    }
+
     try {
-      const response = await api.get("/pedido");
+      const response = await api.get("/pedido", {
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+
       if (!Array.isArray(response.data)) {
         throw new Error("Dados inválidos recebidos da API");
       }
+
       setDelivery(response.data.map((item: any) => ({
-        id: item._id?.toString() || Math.random().toString(),
+        id: item._id,
         cidadePartida: item.cidadePartida,
         enderecoPartida: item.enderecoPartida,
         cidadeDestino: item.cidadeDestino,
         enderecoDestino: item.enderecoDestino,
-        tarifaBase: Number(item.tarifaBase) || 0
+        tarifaBase: Number(item.tarifaBase) || 0,
+        createdAt: new Date(item.createdAt) 
       })));
     } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        localStorage.removeItem("jwtToken");
+        window.location.href = "/login";
+      }
       console.error("Erro ao carregar entregas:", error);
     }
   }
@@ -66,6 +85,8 @@ export default function Delivery() {
       alert("Preencha todos os campos!");
       return;
     }
+
+    const normalizeCity = (city: string) => city.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
     // Normalização e validação de cidade
     const cidadeExataPartida = CIDADES_VALIDAS.find(
@@ -91,44 +112,40 @@ export default function Delivery() {
         },
       }, {
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${getToken()}`
         }
       });
 
-      setDelivery((prev) => [
-        ...prev,
-        {
-          id: response.data._id,
-          cidadePartida: response.data.cidadePartida,
-          enderecoPartida: response.data.enderecoPartida,
-          cidadeDestino: response.data.cidadeDestino,
-          enderecoDestino: response.data.enderecoDestino,
-          tarifaBase: Number(response.data.tarifaBase) || 0
-        }
-      ]);
+      setDelivery(prev => [...prev, {
+        id: response.data._id,
+        ...response.data,
+        tarifaBase: Number(response.data.tarifaBase)
+      }]);
 
       // Limpa os campos
-      cidadePartidaRef.current!.value = "";
-      enderecoPartidaRef.current!.value = "";
-      cidadeDestinoRef.current!.value = "";
-      enderecoDestinoRef.current!.value = "";
+      if (cidadePartidaRef.current) cidadePartidaRef.current.value = "";
+      if (enderecoPartidaRef.current) enderecoPartidaRef.current.value = "";
+      if (cidadeDestinoRef.current) cidadeDestinoRef.current.value = "";
+      if (enderecoDestinoRef.current) enderecoDestinoRef.current.value = "";
 
     } catch (error) {
       console.error("Erro ao criar pedido:", error);
-      alert("Erro ao criar pedido! Verifique o console para mais detalhes.");
+      alert("Erro ao criar pedido!");
     }
   }
 
   async function handleDelete(id: string) {    
-
     if (!window.confirm("Tem certeza que deseja excluir este pedido?")) return;
 
     try {
-      await api.delete(`/pedido/${id}`);
-      setDelivery((prevDelivery) => prevDelivery.filter((item) => item.id !== id));
+      await api.delete(`/pedido/${id}`, {
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });      
+      setDelivery(prev => prev.filter(item => item.id !== id));
+      
     } catch (error) {
       console.error("Erro ao excluir pedido", error);
-      alert("Erro ao excluir pedido.");
+      alert("Erro ao excluir pedido!");
       loadDelivery();
     }
   }
@@ -165,7 +182,8 @@ export default function Delivery() {
 
         <section className="flex flex-col gap-4">
           {delivery.map((item) => (
-            <article key={item.id} className="w-full bg-white rounded p-2 relative hover:scale-105 duration-200">
+            <article key={item.id} 
+            className="w-full bg-white rounded p-2 relative hover:scale-105 duration-200">
               <p><span className="font-medium">Cidade de Partida:</span> {item.cidadePartida}</p>
               <p><span className="font-medium">Endereço:</span> {item.enderecoPartida}</p>
               <p><span className="font-medium">Destino:</span> {item.cidadeDestino}</p>

@@ -50,9 +50,9 @@ function Home() {
       title: 'Pedidos',
       icon: <FaClipboardList className="text-2xl text-orange-600" />,
       items: [
-        { name: 'Status do Pedido', link: '/statusPedido' },
-        { name: 'Solicitação de Entregas', link: '/Delivery' },
-        { name: 'Histórico de Pedidos', link: '/history' }
+        { name: 'Status', link: '/statusPedido' },
+        { name: 'Solicitação', link: '/Delivery' },
+        { name: 'Histórico', link: '/historico' }
       ],
     },
     {
