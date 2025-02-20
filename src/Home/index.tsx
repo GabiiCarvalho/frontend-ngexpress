@@ -4,21 +4,17 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaPhoneAlt, FaEnvelope, FaFacebookF, FaInstagram, FaGoogle, FaUser, FaClipboardList, FaMotorcycle, FaComments, FaFileInvoiceDollar, FaWallet } from 'react-icons/fa';
 
 function Home() {
   const [activeModule, setActiveModule] = useState<number | null>(null);
+  const navigate = useNavigate();
 
   const [user, setUser] = useState<{ name: string } | null>(null);
 
   const toggleModule = (index: number) => {
     setActiveModule(activeModule === index ? null : index);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    setUser(null);
   };
 
   const list = [
@@ -34,6 +30,12 @@ function Home() {
       setUser(JSON.parse(storedUser));
     }
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    setUser(null);
+  };
+
 
   const modules = [
     {
@@ -92,7 +94,7 @@ function Home() {
     <div className="flex flex-col items-center">
       {user && (
         <button onClick={handleLogout} className='mt-2 bg-red-600 text-white px-4 py-2 rounded-mb hover:bg-red-700 transition rounded'>Sair</button>
-      )}      
+      )}
       <Swiper
         modules={[Navigation, Pagination, Autoplay]}
         slidesPerView={1}
@@ -149,10 +151,7 @@ function Home() {
                   <ul className="space-y-2 px-4">
                     {module.items.map((item, idx) => (
                       <li key={idx} className='text-center'>
-                        <Link
-                          to={item.link}
-                          className="text-gray-700 hover:text-orange-600 transition-colors block"
-                        >
+                        <Link to={item.link} className="text-gray-700 hover:text-orange-600 transition-colors block">
                           {item.name}
                         </Link>
                       </li>

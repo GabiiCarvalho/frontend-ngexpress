@@ -14,9 +14,9 @@ export default function ProtectedRoute({ children }: { children: JSX.Element }) 
         navigate("/login");
         return;
       }
-
+  
       try {
-        // Verifica a validade do token com uma requisição simples
+        
         await api.get("/auth/validate", {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -26,7 +26,7 @@ export default function ProtectedRoute({ children }: { children: JSX.Element }) 
         navigate("/login");
       }
     };
-
+  
     validateToken();
   }, [token, navigate]);
 

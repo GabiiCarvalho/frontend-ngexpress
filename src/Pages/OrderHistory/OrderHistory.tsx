@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../../service/api";
 import { FiArrowLeft, FiClock, FiMapPin, FiDollarSign } from "react-icons/fi";
 
@@ -17,8 +17,16 @@ interface Order {
 export default function OrderHistory() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
 
   const getToken = () => localStorage.getItem("jwtToken");
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login')
+    }
+  }, [navigate, user])
 
   useEffect(() => {
     const loadOrders = async () => {

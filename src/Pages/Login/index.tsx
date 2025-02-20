@@ -12,8 +12,10 @@ export default function Login() {
   // Verifica se já está logado ao carregar o componente
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
-    if (token) {
-      navigate("/pedidos");
+    console.log('token no localStorage', token);
+    if (token && window.location.pathname !== "/") {
+      console.log("Token encontrado, redirecionando para / (home)")
+      navigate("/"); // Redireciona para a página inicial
     }
   }, [navigate]);
 
@@ -36,18 +38,21 @@ export default function Login() {
         password,
       });
 
+      console.log(response.data);
+
       // Armazena o token e dados do usuário
       localStorage.setItem("jwtToken", response.data.token);
+      console.log('token armazenado', response.data.token);
       localStorage.setItem("userData", JSON.stringify(response.data.user));
 
       // Valida o token antes do redirecionamento
-      await api.get("/auth/validate", {
+      await api.get("/protected", {
         headers: {
           Authorization: `Bearer ${response.data.token}`
         }
       });
-
-      navigate("/pedidos");
+  
+      navigate("/");
     } catch (err: any) {
       console.error("Erro no login:", err);
       
