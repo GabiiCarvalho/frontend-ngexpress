@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../service/api";
-import { FiArrowLeft, FiClock, FiMapPin, FiDollarSign } from "react-icons/fi";
+import { FiArrowLeft, FiClock, FiMapPin, FiDollarSign, FiUser } from "react-icons/fi";
 
 interface Order {
   id: string;
@@ -14,48 +14,52 @@ interface Order {
   createdAt: string;
 }
 
+interface User {
+  nome: string;
+  email: string;
+}
+
 export default function OrderHistory() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user') || 'null');
-
-  const getToken = () => localStorage.getItem("jwtToken");
+  const user = JSON.parse(localStorage.getItem("user") || "null");
 
   useEffect(() => {
     if (!user) {
-      navigate('/login')
+      navigate("/login");
+      return;
     }
-  }, [navigate, user])
 
-  useEffect(() => {
     const loadOrders = async () => {
       try {
+        const token = localStorage.getItem("jwtToken");
         const response = await api.get("/pedido/historico", {
-          headers: { Authorization: `Bearer ${getToken()}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
-        
+
         setOrders(response.data);
       } catch (error) {
-        console.error("Erro ao carregar histórico:", error);
-        alert("Faça login para acessar seu histórico!");
+        alert("Erro ao carregar histórico. Faça login novamente.");
+        localStorage.removeItem("jwtToken");
+        navigate("/login");
       } finally {
         setLoading(false);
       }
     };
 
     loadOrders();
-  }, []);
+  }, [navigate, user]);
 
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     };
-    return new Date(dateString).toLocaleDateString('pt-BR', options);
+    return new Date(dateString).toLocaleDateString("pt-BR", options);
   };
 
   return (
@@ -68,6 +72,15 @@ export default function OrderHistory() {
           <h1 className="text-3xl font-bold text-gray-800">Histórico de Pedidos</h1>
         </div>
 
+        {user && (
+          <div className="mb-4 flex items-center bg-white p-4 rounded-lg shadow">
+            <FiUser className="text-gray-600 mr-2" />
+            <span className="text-gray-800 font-semibold">
+              Bem-vindo, {user.nome}
+            </span>
+          </div>
+        )}
+
         {loading ? (
           <div className="text-center text-gray-600">Carregando histórico...</div>
         ) : orders.length === 0 ? (
@@ -75,7 +88,10 @@ export default function OrderHistory() {
         ) : (
           <div className="space-y-4">
             {orders.map((order) => (
-              <div key={order.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+              <div
+                key={order.id}
+                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
+              >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center">
                     <FiClock className="text-gray-500 mr-2" />
@@ -83,11 +99,12 @@ export default function OrderHistory() {
                       {formatDate(order.createdAt)}
                     </span>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-sm ${
-                    order.status === 'ENTREGUE' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm ${order.status === "ENTREGUE"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-yellow-100 text-yellow-800"
+                      }`}
+                  >
                     {order.status}
                   </span>
                 </div>
@@ -119,7 +136,9 @@ export default function OrderHistory() {
                       R$ {order.tarifaBase.toFixed(2)}
                     </span>
                   </div>
-                  <span className="text-sm text-gray-500">ID: #{order.id.slice(-6).toUpperCase()}</span>
+                  <span className="text-sm text-gray-500">
+                    ID: #{order.id.slice(-6).toUpperCase()}
+                  </span>
                 </div>
               </div>
             ))}

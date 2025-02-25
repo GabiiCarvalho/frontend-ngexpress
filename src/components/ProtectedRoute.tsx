@@ -17,7 +17,7 @@ export default function ProtectedRoute({ children }: { children: JSX.Element }) 
   
       try {
         
-        await api.get("/auth/validate", {
+        await api.get("/protected", {
           headers: { Authorization: `Bearer ${token}` }
         });
         setIsValidToken(true);

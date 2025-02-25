@@ -14,7 +14,7 @@ interface DeliveryProps {
   createdAt: Date;
 }
 
-// Lista fixa de cidades válidas
+
 const CIDADES_VALIDAS = [
   "Araquari", "Ararangua", "Apiúna", "Balneário Camboriú", "Biguaçu",
   "Blumenau", "Barra Velha", "Bombinhas", "Brusque", "Camboriú",
@@ -35,6 +35,12 @@ export default function Delivery() {
     loadDelivery();
   }, []);
 
+  const userId = localStorage.getItem("userId");
+
+  if (!userId) {
+    alert("Usuário não autorizado")
+  }
+
   const getToken = () => localStorage.getItem("jwtToken");
 
   async function loadDelivery() {
@@ -47,7 +53,7 @@ export default function Delivery() {
     }
 
     try {
-      const response = await api.get("/pedido", {
+      const response = await api.get("/delivery", {
         headers: { Authorization: `Bearer ${getToken()}` }
       });
 
@@ -67,7 +73,7 @@ export default function Delivery() {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         localStorage.removeItem("jwtToken");
-        window.location.href = "/login";
+        window.location.href = "/delivery";
       }
       console.error("Erro ao carregar entregas:", error);
     }
@@ -88,7 +94,7 @@ export default function Delivery() {
 
     const normalizeCity = (city: string) => city.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-    // Normalização e validação de cidade
+    
     const cidadeExataPartida = CIDADES_VALIDAS.find(
       (c) => c.toLowerCase() === partida.toLowerCase()
     );
@@ -107,9 +113,7 @@ export default function Delivery() {
         enderecoPartida,
         cidadeDestino: cidadeExataDestino,
         enderecoDestino,
-        user: {
-          connect: { id: 'userId' }
-        },
+        userId
       }, {
         headers: {
           Authorization: `Bearer ${getToken()}`
@@ -122,7 +126,7 @@ export default function Delivery() {
         tarifaBase: Number(response.data.tarifaBase)
       }]);
 
-      // Limpa os campos
+      
       if (cidadePartidaRef.current) cidadePartidaRef.current.value = "";
       if (enderecoPartidaRef.current) enderecoPartidaRef.current.value = "";
       if (cidadeDestinoRef.current) cidadeDestinoRef.current.value = "";

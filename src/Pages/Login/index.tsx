@@ -9,58 +9,50 @@ export default function Login() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Verifica se já está logado ao carregar o componente
-  useEffect(() => {
-    const token = localStorage.getItem("jwtToken");
-    console.log('token no localStorage', token);
-    if (token && window.location.pathname !== "/") {
-      console.log("Token encontrado, redirecionando para / (home)")
-      navigate("/"); // Redireciona para a página inicial
-    }
-  }, [navigate]);
+  api
+   .get("/protected", { 
+      withCredentials: true, 
+      headers: {         
+         Authorization: `Bearer ${localStorage.getItem("accessToken")}` 
+      }
+   })
+   .then(() => navigate("/"))
+   .catch((err) => console.log("Token inválido", err));
+
+  
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError("");
     setIsLoading(true);
 
+    const email = emailRef.current?.value.trim();
+    const password = passwordRef.current?.value.trim();
+
+    if (!email || !password) {
+      setError("Preencha todos os campos");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const email = emailRef.current?.value;
-      const password = passwordRef.current?.value;
+      const response = await api.post(
+        "/login",
+        { email, password },
+        { withCredentials: true }
+      );
 
-      if (!email || !password) {
-        setError("Preencha todos os campos");
-        return;
-      }
-
-      const response = await api.post("/login", {
-        email,
-        password,
-      });
-
-      console.log(response.data);
-
-      // Armazena o token e dados do usuário
-      localStorage.setItem("jwtToken", response.data.token);
-      console.log('token armazenado', response.data.token);
-      localStorage.setItem("userData", JSON.stringify(response.data.user));
-
-      // Valida o token antes do redirecionamento
-      await api.get("/protected", {
-        headers: {
-          Authorization: `Bearer ${response.data.token}`
-        }
-      });
-  
-      navigate("/");
+      navigate("/delivery");
     } catch (err: any) {
       console.error("Erro no login:", err);
-      
-      if (err.response?.status === 401) {
-        setError("Credenciais inválidas");
-      } else {
-        setError("Erro ao realizar login. Tente novamente.");
-      }
+
+      const errorMessage =
+        err.response?.data?.error || 
+        (err.response?.status === 401
+          ? "Credenciais inválidas"
+          : "Erro ao realizar login. Tente novamente.");
+
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -70,20 +62,16 @@ export default function Login() {
     <div className="w-full min-h-screen bg-gray-950 flex justify-center px-4">
       <main className="my-10 w-full md:max-w-2xl">
         <h1 className="text-4xl font-medium text-white text-center mb-6">Login</h1>
-        
-        <Link 
-          to="/" 
+
+        <Link
+          to="/"
           className="block text-center text-white hover:underline rounded bg-orange-500 cursor-pointer w-full p-2 mb-4"
         >
           Voltar
         </Link>
 
         <form onSubmit={handleSubmit} className="flex flex-col my-6">
-          {error && (
-            <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
-              {error}
-            </div>
-          )}
+          {error && <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">{error}</div>}
 
           <label className="font-medium text-white">E-mail:</label>
           <input
@@ -118,15 +106,12 @@ export default function Login() {
         <div className="mt-4 text-center">
           <p className="text-white">
             Não possui conta?{" "}
-            <Link
-              to="/register"
-              className="text-orange-500 cursor-pointer hover:underline"
-            >
+            <Link to="/register" className="text-orange-500 cursor-pointer hover:underline">
               Clique aqui
             </Link>
           </p>
         </div>
-      </main>      
+      </main>
     </div>
   );
 }
