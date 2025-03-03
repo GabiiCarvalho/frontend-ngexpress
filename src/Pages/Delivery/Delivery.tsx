@@ -21,7 +21,7 @@ const CIDADES_VALIDAS = [
   "Blumenau", "Barra Velha", "Bombinhas", "Brusque", "Camboriú",
   "Canelinha", "Florianópolis", "Gaspar", "Gravatá", "Itajaí",
   "Itapema", "Ilhota", "Joinville", "Jaraguá do Sul", "Luiz Alves",
-  "Lages", "Navegantes", "Mariscal", "Porto Belo", "Palhoça", "Penha", 
+  "Lages", "Navegantes", "Mariscal", "Porto Belo", "Palhoça", "Penha",
   "Rio do Sul", "São João Batista", "São José", "Tijucas"
 ];
 
@@ -29,9 +29,9 @@ const tokenManager = {
   get: () => {
     const token = localStorage.getItem('accessToken');
     const expiration = localStorage.getItem('tokenExpiration');
-    return token && expiration ? { 
-      token, 
-      expiration: parseInt(expiration, 10) 
+    return token && expiration ? {
+      token,
+      expiration: parseInt(expiration, 10)
     } : null;
   },
   isValid: () => {
@@ -47,6 +47,7 @@ const tokenManager = {
 export default function Delivery() {
   const navigate = useNavigate();
   const [delivery, setDelivery] = useState<DeliveryProps[]>([]);
+  const [pedido, setPedido] = useState<Order[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
   const inputs = {
     cidadePartida: useRef<HTMLInputElement>(null),
@@ -54,6 +55,11 @@ export default function Delivery() {
     cidadeDestino: useRef<HTMLInputElement>(null),
     enderecoDestino: useRef<HTMLInputElement>(null)
   };
+
+  useEffect (() => {
+    const savedOrders = JSON.parse(localStorage.getItem("OrderHistory") || "[]");
+    setDelivery(savedOrders);
+  }, []);
 
   useEffect(() => {
     const verifyAuth = () => {
@@ -71,14 +77,14 @@ export default function Delivery() {
     try {
       const authData = tokenManager.get();
       console.log('Dados de autenticação:', authData); // Log dos dados
-      
+
       if (!authData || !tokenManager.isValid()) {
         console.error('Token inválido ou expirado');
         tokenManager.clear();
         navigate('/login', { state: { error: 'Sessão expirada' } }); // Feedback claro
         return;
       }
-  
+
       const { data } = await api.get('/pedido');
       console.log('Dados recebidos:', data); // Log da resposta
       setDelivery(validateDeliveryData(data));
@@ -87,27 +93,6 @@ export default function Delivery() {
       handleApiError(error);
     }
   };
-  
-  {/*// 4. Adicione tratamento de erro aprimorado
-  const handleApiError = (error: unknown) => {
-    if (axios.isAxiosError(error)) {
-      console.error('Detalhes do erro:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        headers: error.response?.headers
-      });
-      
-      if (error.response?.status === 401) {
-        tokenManager.clear();
-        navigate('/login', { 
-          state: { 
-            error: 'Sessão expirada. Faça login novamente' 
-          } 
-        });
-      }
-    }
-    alert("Operação falhou. Verifique o console para detalhes.");
-  };*/}
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -120,9 +105,9 @@ export default function Delivery() {
     if (!validateCities(formData)) return;
 
     try {
-      const { data } = await api.post("/pedido", formData, {        
+      const { data } = await api.post("/pedido", formData, {
       });
-      
+
       setDelivery(prev => [...prev, transformDeliveryItem(data)]);
       formRef.current?.reset();
     } catch (error) {
@@ -132,9 +117,9 @@ export default function Delivery() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir este pedido?")) return;
-    
+
     try {
-      await api.delete(`/pedido/${id}`, {        
+      await api.delete(`/pedido/${id}`, {
       });
       setDelivery(prev => prev.filter(item => item.id !== id));
     } catch (error) {
@@ -145,7 +130,7 @@ export default function Delivery() {
   // Funções auxiliares
   const validateCities = (data: Record<string, string>) => {
     const isValid = CIDADES_VALIDAS.some(c => c === data.cidadePartida) &&
-                   CIDADES_VALIDAS.some(c => c === data.cidadeDestino);
+      CIDADES_VALIDAS.some(c => c === data.cidadeDestino);
     if (!isValid) alert("Cidade(s) inválida(s)!");
     return isValid;
   };
@@ -181,9 +166,16 @@ export default function Delivery() {
     createdAt: new Date(item.createdAt)
   });
 
+  const handleOrder = (newOrder: Order) => {
+    const updatedOrers = [...delivery, newOrder];
+
+    setPedido(updatedOrers);
+    localStorage.setItem("OrderHistory", JSON.stringify(updatedOrers));
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Header Promocional Igual à Home */}
+      {/* Header Promocional */}
       <div className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white pt-4 pb-6 px-6 text-center shadow-lg">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-xl md:text-2xl font-bold mb-2">SOLICITE SEU ENTREGA AGORA</h2>
@@ -198,8 +190,8 @@ export default function Delivery() {
             <h1 className="text-4xl font-bold text-blue-900 mb-4">
               Solicitação de Pedidos
             </h1>
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className="inline-block bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition-colors"
             >
               ← Voltar
@@ -231,8 +223,9 @@ export default function Delivery() {
               ))}
             </datalist>
 
-            <button 
-              type="submit" 
+            <button
+            onClick={() => handleOrder(item)}
+              type="submit"
               className="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
             >
               Solicitar Entrega
@@ -242,8 +235,8 @@ export default function Delivery() {
           {/* Lista de Pedidos Estilizada */}
           <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {delivery.map((item) => (
-              <article 
-                key={item.id} 
+              <article
+                key={item.id}
                 className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow p-6 relative"
               >
                 <div className="space-y-3">
@@ -258,7 +251,7 @@ export default function Delivery() {
                     )
                   ))}
                 </div>
-                <button 
+                <button
                   onClick={() => handleDelete(item.id)}
                   className="absolute top-4 right-4 text-red-600 hover:text-red-700"
                 >
@@ -270,92 +263,63 @@ export default function Delivery() {
         </div>
       </main>
 
-      <section className="w-full max-w-2xl mt-8 space-y-4">
-        {delivery.map((item) => (
-          <article key={item.id} className="bg-white p-4 rounded-lg relative hover:shadow-lg transition-shadow">
-            <div className="grid grid-cols-2 gap-2">
-              {Object.entries(item).map(([key, value]) => (
-                key !== "id" && (
-                  <p key={key}>
-                    <span className="font-semibold">{key.replace(/([A-Z])/g, ' $1')}:</span>{" "}
-                    {key === "tarifaBase" ? `R$ ${value.toFixed(2)}` : value}
-                  </p>
-                )
-              ))}
+      {/* Footer*/}
+      <footer className="w-full bg-blue-900 text-white py-8 mt-auto">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
+            <div>
+              <h4 className="text-xl font-bold mb-4 text-cyan-400">Contato</h4>
+              <p className="flex items-center mb-2">
+                <FaPhoneAlt className="mr-2" />
+                (47) 9 9912-3260
+              </p>
+              <p className="flex items-center">
+                <FaEnvelope className="mr-2" />
+                comercial.ngexpress@gmail.com
+              </p>
             </div>
-            <button 
-              onClick={() => handleDelete(item.id)}
-              className="btn-delete"
-            >
-              <FiTrash size={18} />
-            </button>
-          </article>
-        ))}
-      </section>
 
-        {/* Footer*/}
-              <footer className="w-full bg-blue-900 text-white py-8 mt-auto">
-                <div className="max-w-7xl mx-auto px-4">
-                  <div className="grid md:grid-cols-3 gap-8 mb-8">
-                    <div>
-                      <h4 className="text-xl font-bold mb-4 text-cyan-400">Contato</h4>
-                      <p className="flex items-center mb-2">
-                        <FaPhoneAlt className="mr-2" />
-                        (47) 9 9912-3260
-                      </p>
-                      <p className="flex items-center">
-                        <FaEnvelope className="mr-2" />
-                        comercial.ngexpress@gmail.com
-                      </p>
-                    </div>
-        
-                    <div>
-                      <h4 className="text-xl font-bold mb-4 text-cyan-400">Legal</h4>
-                      <p>CNPJ: 24.723.159/0001-00</p>
-                      <p>Termos de Uso</p>
-                      <p>Política de Privacidade</p>
-                    </div>
-        
-                    <div>
-                      <h4 className="text-xl font-bold mb-4 text-cyan-400">Redes Sociais</h4>
-                      <div className="flex space-x-4 text-2xl">
-                        <a
-                          href="https://www.facebook.com/negexpressteleentrega?mibextid=ZbWKwL"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <FaFacebookF />
-                        </a>
-                        <a
-                          href="https://www.instagram.com/ng.express_/profilecard/?igsh=MTB6NnJ0N3AxZXc4Zw=="
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <FaInstagram />
-                        </a>
-                        <a
-                          href="https://www.google.com.br/search?q=n%26g"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <FaGoogle />
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-        
-                  <div className="pt-6 border-t border-blue-800 text-center text-sm text-blue-300">
-                    <p>2016 - 2025, Copyright © N&G Express. Todos os direitos reservados.</p>
-                  </div>
-                </div>
-              </footer>
+            <div>
+              <h4 className="text-xl font-bold mb-4 text-cyan-400">Legal</h4>
+              <p>CNPJ: 24.723.159/0001-00</p>
+              <p>Termos de Uso</p>
+              <p>Política de Privacidade</p>
+            </div>
+
+            <div>
+              <h4 className="text-xl font-bold mb-4 text-cyan-400">Redes Sociais</h4>
+              <div className="flex space-x-4 text-2xl">
+                <a
+                  href="https://www.facebook.com/negexpressteleentrega?mibextid=ZbWKwL"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <FaFacebookF />
+                </a>
+                <a
+                  href="https://www.instagram.com/ng.express_/profilecard/?igsh=MTB6NnJ0N3AxZXc4Zw=="
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <FaInstagram />
+                </a>
+                <a
+                  href="https://www.google.com.br/search?q=n%26g"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <FaGoogle />
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-6 border-t border-blue-800 text-center text-sm text-blue-300">
+            <p>2016 - 2025, Copyright © N&G Express. Todos os direitos reservados.</p>
+          </div>
+        </div>
+      </footer>
 
     </div>
   );
 }
-
-// Estilos reutilizáveis
-const btnBase = "w-full p-2 rounded font-medium transition-colors duration-200";
-const btnPrimary = `${btnBase} bg-orange-500 text-white hover:bg-orange-600`;
-const btnSubmit = `${btnBase} bg-green-500 text-white hover:bg-green-600`;
-const btnDelete = "absolute top-2 right-2 bg-red-600 w-7 h-7 flex items-center justify-center rounded hover:bg-red-700";

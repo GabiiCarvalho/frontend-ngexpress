@@ -25,28 +25,28 @@ export default function OrderHistory() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "null");
 
+  const loadOrders = async () => {
+    try {
+      const token = localStorage.getItem("jwtToken");
+      const response = await api.get("/pedido/historico", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setOrders(response.data);
+    } catch (error) {
+      alert("Erro ao carregar histórico. Faça login novamente.");
+      localStorage.removeItem("jwtToken");
+      navigate("/login");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       navigate("/login");
       return;
     }
-
-    const loadOrders = async () => {
-      try {
-        const token = localStorage.getItem("jwtToken");
-        const response = await api.get("/pedido/historico", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        setOrders(response.data);
-      } catch (error) {
-        alert("Erro ao carregar histórico. Faça login novamente.");
-        localStorage.removeItem("jwtToken");
-        navigate("/login");
-      } finally {
-        setLoading(false);
-      }
-    };
 
     loadOrders();
   }, [navigate, user]);
@@ -101,8 +101,8 @@ export default function OrderHistory() {
                   </div>
                   <span
                     className={`px-3 py-1 rounded-full text-sm ${order.status === "ENTREGUE"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-yellow-100 text-yellow-800"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-yellow-100 text-yellow-800"
                       }`}
                   >
                     {order.status}

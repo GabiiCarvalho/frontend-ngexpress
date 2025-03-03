@@ -42,7 +42,7 @@ export default function Login() {
           'tokenExpiration',
           String(Date.now() + 8 * 60 * 60 * 1000)
         );
-        console.log('Autenticação bem-sucedida. Token:', response.data.token); // Log de depuração
+        console.log('Autenticação bem-sucedida. Token:', response.data.token); 
       } else {
         throw new Error('Token não recebido na resposta');
       }
