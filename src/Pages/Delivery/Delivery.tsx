@@ -2,7 +2,8 @@ import axios from "axios";
 import api from "../../service/api";
 import { useEffect, useState, useRef, FormEvent } from "react";
 import { FiTrash } from "react-icons/fi";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { FaEnvelope, FaFacebookF, FaGoogle, FaInstagram, FaPhoneAlt } from "react-icons/fa";
 
 interface DeliveryProps {
   id: string;
@@ -24,182 +25,337 @@ const CIDADES_VALIDAS = [
   "Rio do Sul", "São João Batista", "São José", "Tijucas"
 ];
 
+const tokenManager = {
+  get: () => {
+    const token = localStorage.getItem('accessToken');
+    const expiration = localStorage.getItem('tokenExpiration');
+    return token && expiration ? { 
+      token, 
+      expiration: parseInt(expiration, 10) 
+    } : null;
+  },
+  isValid: () => {
+    const data = tokenManager.get();
+    return data && data.expiration > Date.now();
+  },
+  clear: () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('tokenExpiration');
+  }
+};
+
 export default function Delivery() {
+  const navigate = useNavigate();
   const [delivery, setDelivery] = useState<DeliveryProps[]>([]);
-  const cidadePartidaRef = useRef<HTMLInputElement>(null);
-  const enderecoPartidaRef = useRef<HTMLInputElement>(null);
-  const cidadeDestinoRef = useRef<HTMLInputElement>(null);
-  const enderecoDestinoRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const inputs = {
+    cidadePartida: useRef<HTMLInputElement>(null),
+    enderecoPartida: useRef<HTMLInputElement>(null),
+    cidadeDestino: useRef<HTMLInputElement>(null),
+    enderecoDestino: useRef<HTMLInputElement>(null)
+  };
 
   useEffect(() => {
+    const verifyAuth = () => {
+      if (!tokenManager.isValid()) {
+        tokenManager.clear();
+        navigate('/login');
+      }
+    };
+
+    verifyAuth();
     loadDelivery();
-  }, []);
+  }, [navigate]);
 
-  const userId = localStorage.getItem("userId");
-
-  if (!userId) {
-    alert("Usuário não autorizado")
-  }
-
-  const getToken = () => localStorage.getItem("jwtToken");
-
-  async function loadDelivery() {
-    const token = getToken();
-
-    if (!token) {
-      alert("Faça login para acessar!");
-      window.location.href = "/login";
-      return;
-    }
-
+  const loadDelivery = async () => {
     try {
-      const response = await api.get("/delivery", {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
-
-      if (!Array.isArray(response.data)) {
-        throw new Error("Dados inválidos recebidos da API");
+      const authData = tokenManager.get();
+      console.log('Dados de autenticação:', authData); // Log dos dados
+      
+      if (!authData || !tokenManager.isValid()) {
+        console.error('Token inválido ou expirado');
+        tokenManager.clear();
+        navigate('/login', { state: { error: 'Sessão expirada' } }); // Feedback claro
+        return;
       }
-
-      setDelivery(response.data.map((item: any) => ({
-        id: item._id,
-        cidadePartida: item.cidadePartida,
-        enderecoPartida: item.enderecoPartida,
-        cidadeDestino: item.cidadeDestino,
-        enderecoDestino: item.enderecoDestino,
-        tarifaBase: Number(item.tarifaBase) || 0,
-        createdAt: new Date(item.createdAt) 
-      })));
+  
+      const { data } = await api.get('/pedido');
+      console.log('Dados recebidos:', data); // Log da resposta
+      setDelivery(validateDeliveryData(data));
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        localStorage.removeItem("jwtToken");
-        window.location.href = "/delivery";
-      }
-      console.error("Erro ao carregar entregas:", error);
+      console.error('Erro na requisição:', error);
+      handleApiError(error);
     }
-  }
+  };
+  
+  {/*// 4. Adicione tratamento de erro aprimorado
+  const handleApiError = (error: unknown) => {
+    if (axios.isAxiosError(error)) {
+      console.error('Detalhes do erro:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        headers: error.response?.headers
+      });
+      
+      if (error.response?.status === 401) {
+        tokenManager.clear();
+        navigate('/login', { 
+          state: { 
+            error: 'Sessão expirada. Faça login novamente' 
+          } 
+        });
+      }
+    }
+    alert("Operação falhou. Verifique o console para detalhes.");
+  };*/}
 
-  async function handleSubmit(event: FormEvent) {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!formRef.current?.checkValidity()) return;
 
-    const partida = cidadePartidaRef.current?.value?.trim() || "";
-    const enderecoPartida = enderecoPartidaRef.current?.value?.trim() || "";
-    const destino = cidadeDestinoRef.current?.value?.trim() || "";
-    const enderecoDestino = enderecoDestinoRef.current?.value?.trim() || "";
-
-    if (!partida || !destino || !enderecoPartida || !enderecoDestino) {
-      alert("Preencha todos os campos!");
-      return;
-    }
-
-    const normalizeCity = (city: string) => city.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-    
-    const cidadeExataPartida = CIDADES_VALIDAS.find(
-      (c) => c.toLowerCase() === partida.toLowerCase()
-    );
-    const cidadeExataDestino = CIDADES_VALIDAS.find(
-      (c) => c.toLowerCase() === destino.toLowerCase()
+    const formData = Object.fromEntries(
+      Object.entries(inputs).map(([key, ref]) => [key, ref.current?.value.trim() ?? ''])
     );
 
-    if (!cidadeExataPartida || !cidadeExataDestino) {
-      alert("Uma ou ambas as cidades não são válidas!");
-      return;
-    }
+    if (!validateCities(formData)) return;
 
     try {
-      const response = await api.post("/pedido", {
-        cidadePartida: cidadeExataPartida,
-        enderecoPartida,
-        cidadeDestino: cidadeExataDestino,
-        enderecoDestino,
-        userId
-      }, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`
-        }
+      const { data } = await api.post("/pedido", formData, {        
       });
-
-      setDelivery(prev => [...prev, {
-        id: response.data._id,
-        ...response.data,
-        tarifaBase: Number(response.data.tarifaBase)
-      }]);
-
       
-      if (cidadePartidaRef.current) cidadePartidaRef.current.value = "";
-      if (enderecoPartidaRef.current) enderecoPartidaRef.current.value = "";
-      if (cidadeDestinoRef.current) cidadeDestinoRef.current.value = "";
-      if (enderecoDestinoRef.current) enderecoDestinoRef.current.value = "";
-
+      setDelivery(prev => [...prev, transformDeliveryItem(data)]);
+      formRef.current?.reset();
     } catch (error) {
-      console.error("Erro ao criar pedido:", error);
-      alert("Erro ao criar pedido!");
+      handleApiError(error);
     }
-  }
+  };
 
-  async function handleDelete(id: string) {    
-    if (!window.confirm("Tem certeza que deseja excluir este pedido?")) return;
-
+  const handleDelete = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este pedido?")) return;
+    
     try {
-      await api.delete(`/pedido/${id}`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });      
+      await api.delete(`/pedido/${id}`, {        
+      });
       setDelivery(prev => prev.filter(item => item.id !== id));
-      
     } catch (error) {
-      console.error("Erro ao excluir pedido", error);
-      alert("Erro ao excluir pedido!");
-      loadDelivery();
+      handleApiError(error);
     }
-  }
+  };
+
+  // Funções auxiliares
+  const validateCities = (data: Record<string, string>) => {
+    const isValid = CIDADES_VALIDAS.some(c => c === data.cidadePartida) &&
+                   CIDADES_VALIDAS.some(c => c === data.cidadeDestino);
+    if (!isValid) alert("Cidade(s) inválida(s)!");
+    return isValid;
+  };
+
+  const handleApiError = (error: unknown) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      tokenManager.clear();
+      navigate("/login");
+    }
+    console.error("Erro na operação:", error);
+    alert("Operação falhou!");
+  };
+
+  const validateDeliveryData = (data: any): DeliveryProps[] => {
+    return data.map((item: any) => ({
+      id: item._id,
+      cidadePartida: item.cidadePartida || "Desconhecida",
+      enderecoPartida: item.enderecoPartida || "",
+      cidadeDestino: item.cidadeDestino || "Desconhecida",
+      enderecoDestino: item.enderecoDestino || "",
+      tarifaBase: Number(item.tarifaBase) || 0,
+      createdAt: new Date(item.createdAt)
+    }));
+  };
+
+  const transformDeliveryItem = (item: any): DeliveryProps => ({
+    id: item._id,
+    cidadePartida: item.cidadePartida,
+    enderecoPartida: item.enderecoPartida,
+    cidadeDestino: item.cidadeDestino,
+    enderecoDestino: item.enderecoDestino,
+    tarifaBase: Number(item.tarifaBase),
+    createdAt: new Date(item.createdAt)
+  });
 
   return (
-    <div className="w-full min-h-screen bg-gray-950 flex justify-center px-4">
-      <main className="my-10 w-full md:max-w-2xl">
-        <h1 className="text-4xl font-medium text-white text-center mb-6">Solicitação de Pedidos</h1>
-        <Link to="/" className="block text-center text-white hover:underline rounded bg-orange-500 cursor-pointer w-full p-2 mb-4">
-          Voltar
-        </Link>
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      {/* Header Promocional Igual à Home */}
+      <div className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white pt-4 pb-6 px-6 text-center shadow-lg">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-xl md:text-2xl font-bold mb-2">SOLICITE SEU ENTREGA AGORA</h2>
+          <p className="text-sm md:text-lg mb-3">Rápido, seguro e com o melhor custo-benefício</p>
+        </div>
+      </div>
 
-        <form className="flex flex-col my-6" onSubmit={handleSubmit}>
-          <label className="font-medium text-white">Cidade de Partida:</label>
-          <input type="text" placeholder="Ex: Balneário Camboriú" className="w-full mb-5 p-2 rounded" ref={cidadePartidaRef} list="cidadesList" />
+      {/* Conteúdo Principal */}
+      <main className="w-full px-4 py-8 flex-grow">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-10">
+            <h1 className="text-4xl font-bold text-blue-900 mb-4">
+              Solicitação de Pedidos
+            </h1>
+            <Link 
+              to="/" 
+              className="inline-block bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition-colors"
+            >
+              ← Voltar
+            </Link>
+          </div>
 
-          <label className="font-medium text-white">Endereço:</label>
-          <input type="text" placeholder="Rua, Nº" className="w-full mb-5 p-2 rounded" ref={enderecoPartidaRef} />
+          {/* Formulário Atualizado */}
+          <form ref={formRef} onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div className="grid md:grid-cols-2 gap-6">
+              {Object.entries(inputs).map(([name, ref]) => (
+                <div key={name} className="mb-4">
+                  <label className="block text-blue-900 font-medium mb-2">
+                    {name.replace(/([A-Z])/g, ' $1')}:
+                  </label>
+                  <input
+                    ref={ref}
+                    type="text"
+                    className="w-full p-3 border-2 border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                    list={name.includes("cidade") ? "cidadesList" : undefined}
+                  />
+                </div>
+              ))}
+            </div>
 
-          <label className="font-medium text-white">Cidade de Destino:</label>
-          <input type="text" placeholder="Ex: Florianópolis" className="w-full mb-5 p-2 rounded" ref={cidadeDestinoRef} list="cidadesList" />
+            <datalist id="cidadesList">
+              {CIDADES_VALIDAS.map((cidade, index) => (
+                <option key={index} value={cidade} />
+              ))}
+            </datalist>
 
-          <label className="font-medium text-white">Endereço:</label>
-          <input type="text" placeholder="Rua, Nº" className="w-full mb-5 p-2 rounded" ref={enderecoDestinoRef} />
+            <button 
+              type="submit" 
+              className="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+            >
+              Solicitar Entrega
+            </button>
+          </form>
 
-          <datalist id="cidadesList">
-            {CIDADES_VALIDAS.map((cidade, index) => (
-              <option key={index} value={cidade} />
+          {/* Lista de Pedidos Estilizada */}
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {delivery.map((item) => (
+              <article 
+                key={item.id} 
+                className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow p-6 relative"
+              >
+                <div className="space-y-3">
+                  {Object.entries(item).map(([key, value]) => (
+                    key !== "id" && (
+                      <p key={key} className="text-blue-900">
+                        <span className="font-semibold">
+                          {key.replace(/([A-Z])/g, ' $1')}:
+                        </span>{" "}
+                        {key === "tarifaBase" ? `R$ ${value.toFixed(2)}` : value}
+                      </p>
+                    )
+                  ))}
+                </div>
+                <button 
+                  onClick={() => handleDelete(item.id)}
+                  className="absolute top-4 right-4 text-red-600 hover:text-red-700"
+                >
+                  <FiTrash size={20} />
+                </button>
+              </article>
             ))}
-          </datalist>
-
-          <input type="submit" value="Solicitar" className="cursor-pointer w-full p-2 bg-green-500 rounded font-medium hover:bg-green-600 transition-colors" />
-        </form>
-
-        <section className="flex flex-col gap-4">
-          {delivery.map((item) => (
-            <article key={item.id} 
-            className="w-full bg-white rounded p-2 relative hover:scale-105 duration-200">
-              <p><span className="font-medium">Cidade de Partida:</span> {item.cidadePartida}</p>
-              <p><span className="font-medium">Endereço:</span> {item.enderecoPartida}</p>
-              <p><span className="font-medium">Destino:</span> {item.cidadeDestino}</p>
-              <p><span className="font-medium">Endereço:</span> {item.enderecoDestino}</p>
-              <p><span className="font-medium">Tarifa:</span> R$ {item.tarifaBase.toFixed(2)}</p>
-              <button onClick={() => handleDelete(item.id)} className="bg-red-600 w-7 h-7 flex items-center justify-center rounded-lg absolute right-0 -top-2 hover:bg-red-700 transition-colors">
-                <FiTrash size={18} color="#FFF"/>
-              </button>
-            </article>
-          ))}
-        </section>
+          </section>
+        </div>
       </main>
+
+      <section className="w-full max-w-2xl mt-8 space-y-4">
+        {delivery.map((item) => (
+          <article key={item.id} className="bg-white p-4 rounded-lg relative hover:shadow-lg transition-shadow">
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(item).map(([key, value]) => (
+                key !== "id" && (
+                  <p key={key}>
+                    <span className="font-semibold">{key.replace(/([A-Z])/g, ' $1')}:</span>{" "}
+                    {key === "tarifaBase" ? `R$ ${value.toFixed(2)}` : value}
+                  </p>
+                )
+              ))}
+            </div>
+            <button 
+              onClick={() => handleDelete(item.id)}
+              className="btn-delete"
+            >
+              <FiTrash size={18} />
+            </button>
+          </article>
+        ))}
+      </section>
+
+        {/* Footer*/}
+              <footer className="w-full bg-blue-900 text-white py-8 mt-auto">
+                <div className="max-w-7xl mx-auto px-4">
+                  <div className="grid md:grid-cols-3 gap-8 mb-8">
+                    <div>
+                      <h4 className="text-xl font-bold mb-4 text-cyan-400">Contato</h4>
+                      <p className="flex items-center mb-2">
+                        <FaPhoneAlt className="mr-2" />
+                        (47) 9 9912-3260
+                      </p>
+                      <p className="flex items-center">
+                        <FaEnvelope className="mr-2" />
+                        comercial.ngexpress@gmail.com
+                      </p>
+                    </div>
+        
+                    <div>
+                      <h4 className="text-xl font-bold mb-4 text-cyan-400">Legal</h4>
+                      <p>CNPJ: 24.723.159/0001-00</p>
+                      <p>Termos de Uso</p>
+                      <p>Política de Privacidade</p>
+                    </div>
+        
+                    <div>
+                      <h4 className="text-xl font-bold mb-4 text-cyan-400">Redes Sociais</h4>
+                      <div className="flex space-x-4 text-2xl">
+                        <a
+                          href="https://www.facebook.com/negexpressteleentrega?mibextid=ZbWKwL"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <FaFacebookF />
+                        </a>
+                        <a
+                          href="https://www.instagram.com/ng.express_/profilecard/?igsh=MTB6NnJ0N3AxZXc4Zw=="
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <FaInstagram />
+                        </a>
+                        <a
+                          href="https://www.google.com.br/search?q=n%26g"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <FaGoogle />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+        
+                  <div className="pt-6 border-t border-blue-800 text-center text-sm text-blue-300">
+                    <p>2016 - 2025, Copyright © N&G Express. Todos os direitos reservados.</p>
+                  </div>
+                </div>
+              </footer>
+
     </div>
   );
 }
+
+// Estilos reutilizáveis
+const btnBase = "w-full p-2 rounded font-medium transition-colors duration-200";
+const btnPrimary = `${btnBase} bg-orange-500 text-white hover:bg-orange-600`;
+const btnSubmit = `${btnBase} bg-green-500 text-white hover:bg-green-600`;
+const btnDelete = "absolute top-2 right-2 bg-red-600 w-7 h-7 flex items-center justify-center rounded hover:bg-red-700";

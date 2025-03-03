@@ -40,7 +40,7 @@ function Home() {
   const modules = [
     {
       title: 'Cliente',
-      icon: <FaUser className="text-2xl text-orange-600" />,
+      icon: <FaUser className="text-2xl text-blue-600" />,
       items: user
         ? [{ name: 'Perfil', link: '/profile' }]
         : [
@@ -50,7 +50,7 @@ function Home() {
     },
     {
       title: 'Pedidos',
-      icon: <FaClipboardList className="text-2xl text-orange-600" />,
+      icon: <FaClipboardList className="text-2xl text-blue-600" />,
       items: [
         { name: 'Status', link: '/statusPedido' },
         { name: 'Solicitação', link: '/Delivery' },
@@ -59,7 +59,7 @@ function Home() {
     },
     {
       title: 'Entregadores',
-      icon: <FaMotorcycle className="text-2xl text-orange-600" />,
+      icon: <FaMotorcycle className="text-2xl text-blue-600" />,
       items: [
         { name: 'Status em Tempo Real', link: '/tempoReal' },
         { name: 'Motoboy Disponível', link: '/motoboyDisponivel' },
@@ -67,14 +67,14 @@ function Home() {
     },
     {
       title: 'Avaliação de Clientes',
-      icon: <FaComments className="text-2xl text-orange-600" />,
+      icon: <FaComments className="text-2xl text-blue-600" />,
       items: [
         { name: 'Feedback de Clientes', link: '/feedbackCliente' }
       ],
     },
     {
       title: 'Faturamento e Emissão de Notas',
-      icon: <FaFileInvoiceDollar className="text-2xl text-orange-600" />,
+      icon: <FaFileInvoiceDollar className="text-2xl text-blue-600" />,
       items: [
         { name: 'Emissão de Nota Fiscal', link: '/emissaoNf' },
         { name: 'Formas de Pagamentos', link: '/formasPagamento' },
@@ -82,7 +82,7 @@ function Home() {
     },
     {
       title: 'Carteira',
-      icon: <FaWallet className="text-2xl text-orange-600" />,
+      icon: <FaWallet className="text-2xl text-blue-600" />,
       items: [
         { name: 'Saldo', link: '/saldo' },
         { name: 'Adicionar fundos', link: '/adicionarFundos' },
@@ -91,117 +91,151 @@ function Home() {
   ];
 
   return (
-    <div className="flex flex-col items-center">
-      {user && (
-        <button onClick={handleLogout} className='mt-2 bg-red-600 text-white px-4 py-2 rounded-mb hover:bg-red-700 transition rounded'>Sair</button>
-      )}
-      <Swiper
-        modules={[Navigation, Pagination, Autoplay]}
-        slidesPerView={1}
-        pagination={{ clickable: true }}
-        navigation
-        autoplay={{
-          delay: 3000,
-          disableOnInteraction: false
-        }}
-        loop={true}
-        className="w-full mb-8"
-      >
-        {list.map((item) => (
-          <SwiperSlide key={item.id}>
-            <img src={item.image} alt="slider" className="slide-item w-full h-[500px] object-cover" />
-          </SwiperSlide>
-        ))}
-      </Swiper>
-
-      <div className="container mx-auto px-4">
-
-        <div className='text-center mb-6'>
-          {user ? (
-            <h2 className='text-2xl font-bold text-orange-600'>Bem-vindo, {user.name}!</h2>
-          ) : (
-            <h2 className='text-2xl font-bold text-gray-950'>Bem-vindo à N&G EXPRESS!</h2>
-          )}
-        </div>
-
-        <div className="container mx-auto px-4 mb-8">
-          <Swiper
-            modules={[Navigation, Pagination]}
-            spaceBetween={30}
-            slidesPerView={1}
-            navigation
-            pagination={{ clickable: true }}
-            breakpoints={{
-              640: {
-                slidesPerView: 2,
-              },
-              1024: {
-                slidesPerView: 3,
-              },
-            }}
-            className="w-full"
-          >
-            {modules.map((module, index) => (
-              <SwiperSlide key={index}>
-                <div className="bg-white rounded-lg shadow-md p-6 h-64 hover:shadow-lg transition-shadow">
-                  <div className='mb-4 bg-orange-200 p-3 rounded-full flex items-center justify-center w-12 h-12 mx-auto transition-all hover:bg-orange-300' >
-                    {module.icon}
-                  </div>
-                  <h3 className="text-xl font-bold text-orange-600 mb-4 text-center">{module.title}</h3>
-                  <ul className="space-y-2 px-4">
-                    {module.items.map((item, idx) => (
-                      <li key={idx} className='text-center'>
-                        <Link to={item.link} className="text-gray-700 hover:text-orange-600 transition-colors block">
-                          {item.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </SwiperSlide>
-            ))}
-          </Swiper>
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      {/* Header Promocional com Espaçamento Ajustado */}
+      <div className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white pt-4 pb-6 px-6 text-center shadow-lg">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-xl md:text-2xl font-bold mb-2">PREPARE-SE PARA O MÊS DO CONSUMIDOR</h2>
+          <p className="text-sm md:text-lg mb-3">Esquente suas vendas com fretes especiais!</p>
+          <div className="space-y-2">
+            <p className="text-lg md:text-xl font-bold animate-pulse">50% OFF no 1º envio</p>
+            <p className="text-xs md:text-sm">
+              Use o código <span className="font-mono bg-white/20 px-2 py-1 rounded">CONSUMIDOR50</span>
+            </p>
+            <button className="bg-white text-blue-600 px-4 md:px-6 py-2 rounded-full font-bold mt-2 hover:bg-gray-100 transition-all shadow-lg text-sm md:text-base">
+              Quero enviar →
+            </button>
+          </div>
         </div>
       </div>
 
-      <footer className="mt-8 w-full bg-gray-600 p-4 text-center">
-        <div className="text-gray-100 mb-2">
-          <p>
-            <strong className="text-orange-600">N&G EXPRESS</strong> - Soluções completas para logística e
-            entrega rápida.
-          </p>
-          <p>CNPJ: 24.723.159/0001-00</p>
-          <p>
-            <FaPhoneAlt className="inline mr-1" /> (47) 9 9912-3260 | <FaEnvelope className="inline mr-1" />{' '}
-            comercial.ngexpress@gmail.com
-          </p>
+      {/* Carrossel com Espaçamento Responsivo */}
+      <div className="w-full mt-4 md:mt-8 px-4">
+        <Swiper
+          modules={[Navigation, Pagination, Autoplay]}
+          slidesPerView={1}
+          pagination={{ clickable: true }}
+          navigation
+          autoplay={{
+            delay: 3000,
+            disableOnInteraction: false
+          }}
+          loop={true}
+          className="w-full h-[300px] md:h-[780px] rounded-xl shadow-xl"
+        >
+          {list.map((item) => (
+            <SwiperSlide key={item.id}>
+              <img 
+                src={item.image} 
+                alt="slider" 
+                className="w-full h-full object-cover object-center"
+              />
+            </SwiperSlide>
+          ))}
+        </Swiper>
+      </div>
+
+      {/* Conteúdo Principal */}
+      <main className="w-full px-4 py-8 flex-grow">
+        <div className='max-w-7xl mx-auto'>
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-blue-900 mb-4">
+            {user ? `Bem-vindo, ${user.name}!` : 'Bem-vindo'}
+          </h1>
+          <p className="text-blue-600 text-lg">Nós movimentamos a eficácia do seu negócio</p>
         </div>
-        <div className="flex justify-center space-x-4 text-orange-600">
-          <a
-            href="https://www.facebook.com/negexpressteleentrega?mibextid=ZbWKwL"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <FaFacebookF />
-          </a>
-          <a
-            href="https://www.instagram.com/ng.express_/profilecard/?igsh=MTB6NnJ0N3AxZXc4Zw=="
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <FaInstagram />
-          </a>
-          <a
-            href="https://www.google.com.br/search?q=n%26g"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <FaGoogle />
-          </a>
+
+        {/* Grid de Módulos */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 w-full">
+          {modules.map((module, index) => (
+            <div
+              key={index}
+              className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all p-6 border border-blue-50"
+            >
+              <div className="flex items-center mb-4 space-x-4">
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  {module.icon}
+                </div>
+                <h3 className="text-xl font-bold text-blue-900">{module.title}</h3>
+              </div>
+              <ul className="space-y-2">
+                {module.items.map((item, idx) => (
+                  <li key={idx}>
+                    <Link
+                      to={item.link}
+                      className="flex items-center p-3 text-gray-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      <span className="ml-2">{item.name}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
-        <span className="text-gray-200 text-sm block mt-2">
-          2016 - 2025, Copyright © N&G Express. Todos os direitos reservados.
-        </span>
+
+        {/* Destaque CNPJ */}
+        <div className="w-full bg-blue-900 text-white rounded-xl p-6 text-center mb-12">
+          <p className="text-lg font-bold mb-2">OFERTA EXCLUSIVA PARA CNPJ</p>
+          <p className="text-3xl font-bold">1º Pedido Grátis*</p>
+          <p className="text-sm mt-2 opacity-80">*Consulte condições</p>
+        </div>
+        </div>
+      </main>
+
+
+      <footer className="w-full bg-blue-900 text-white py-8">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
+            <div>
+              <h4 className="text-xl font-bold mb-4 text-cyan-400">Contato</h4>
+              <p className="flex items-center mb-2">
+                <FaPhoneAlt className="mr-2" />
+                (47) 9 9912-3260
+              </p>
+              <p className="flex items-center">
+                <FaEnvelope className="mr-2" />
+                comercial.ngexpress@gmail.com
+              </p>
+            </div>
+            <div>
+              <h4 className="text-xl font-bold mb-4 text-cyan-400">Legal</h4>
+              <p>CNPJ: 24.723.159/0001-00</p>
+              <p>Termos de Uso</p>
+              <p>Política de Privacidade</p>
+            </div>
+            <div>
+              <h4 className="text-xl font-bold mb-4 text-cyan-400">Redes Sociais</h4>
+              <div className="flex space-x-4 text-2xl">
+                <a
+                  href="https://www.facebook.com/negexpressteleentrega?mibextid=ZbWKwL"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <FaFacebookF />
+                </a>
+                <a
+                  href="https://www.instagram.com/ng.express_/profilecard/?igsh=MTB6NnJ0N3AxZXc4Zw=="
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <FaInstagram />
+                </a>
+                <a
+                  href="https://www.google.com.br/search?q=n%26g"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <FaGoogle />
+                </a>
+              </div>
+              <div className="w-full pt-6 border-t border-blue-800 text-center text-sm text-blue-300"></div>
+
+              <p>2016 - 2025, Copyright © N&G Express. Todos os direitos reservados.</p>
+
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
   );
