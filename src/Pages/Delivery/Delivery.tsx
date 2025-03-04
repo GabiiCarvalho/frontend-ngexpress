@@ -5,7 +5,7 @@ import { FiTrash } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { FaEnvelope, FaFacebookF, FaGoogle, FaInstagram, FaPhoneAlt } from "react-icons/fa";
 
-interface DeliveryProps {
+interface Order {
   id: string;
   cidadePartida: string;
   enderecoPartida: string;
@@ -46,7 +46,7 @@ const tokenManager = {
 
 export default function Delivery() {
   const navigate = useNavigate();
-  const [delivery, setDelivery] = useState<DeliveryProps[]>([]);
+  const [delivery, setDelivery] = useState<Order[]>([]);
   const [pedido, setPedido] = useState<Order[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
   const inputs = {
@@ -56,7 +56,7 @@ export default function Delivery() {
     enderecoDestino: useRef<HTMLInputElement>(null)
   };
 
-  useEffect (() => {
+  useEffect(() => {
     const savedOrders = JSON.parse(localStorage.getItem("OrderHistory") || "[]");
     setDelivery(savedOrders);
   }, []);
@@ -105,10 +105,10 @@ export default function Delivery() {
     if (!validateCities(formData)) return;
 
     try {
-      const { data } = await api.post("/pedido", formData, {
-      });
-
-      setDelivery(prev => [...prev, transformDeliveryItem(data)]);
+      const { data } = await api.post("/pedido", formData);
+      const newOrder = transformOrderItem(data);
+      setDelivery(prev => [...prev, newOrder]);
+      handleOrder(newOrder);
       formRef.current?.reset();
     } catch (error) {
       handleApiError(error);
@@ -120,6 +120,9 @@ export default function Delivery() {
 
     try {
       await api.delete(`/pedido/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('AccessToken')}`
+        }
       });
       setDelivery(prev => prev.filter(item => item.id !== id));
     } catch (error) {
@@ -144,7 +147,7 @@ export default function Delivery() {
     alert("Operação falhou!");
   };
 
-  const validateDeliveryData = (data: any): DeliveryProps[] => {
+  const validateDeliveryData = (data: any): Order[] => {
     return data.map((item: any) => ({
       id: item._id,
       cidadePartida: item.cidadePartida || "Desconhecida",
@@ -156,7 +159,7 @@ export default function Delivery() {
     }));
   };
 
-  const transformDeliveryItem = (item: any): DeliveryProps => ({
+  const transformOrderItem = (item: any): Order => ({
     id: item._id,
     cidadePartida: item.cidadePartida,
     enderecoPartida: item.enderecoPartida,
@@ -167,10 +170,9 @@ export default function Delivery() {
   });
 
   const handleOrder = (newOrder: Order) => {
-    const updatedOrers = [...delivery, newOrder];
-
-    setPedido(updatedOrers);
-    localStorage.setItem("OrderHistory", JSON.stringify(updatedOrers));
+    const updatedOrders = [...pedido, newOrder];
+    setPedido(updatedOrders);
+    localStorage.setItem("OrderHistory", JSON.stringify(updatedOrders));
   };
 
   return (
@@ -224,7 +226,6 @@ export default function Delivery() {
             </datalist>
 
             <button
-            onClick={() => handleOrder(item)}
               type="submit"
               className="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
             >
@@ -246,7 +247,8 @@ export default function Delivery() {
                         <span className="font-semibold">
                           {key.replace(/([A-Z])/g, ' $1')}:
                         </span>{" "}
-                        {key === "tarifaBase" ? `R$ ${value.toFixed(2)}` : value}
+                        {value instanceof Date ? value.toLocaleDateString() :
+                          key === "tarifaBase" ? `R$ ${value.toFixed(2)}` : value}
                       </p>
                     )
                   ))}
