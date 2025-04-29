@@ -1,33 +1,57 @@
-import axios from 'axios';
+import axios from "axios";
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: "http://localhost:3000",
+  withCredentials: true,
 });
 
-// Interceptor para incluir token automaticamente
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('accessToken');
-  console.log('[Interceptor] Token enviado:', token?.slice(0, 15) + '...'); // Log parcial do token
-  
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
-  } else {
-    console.warn('Requisição sem token de autenticação');
   }
   return config;
 });
 
-// Interceptor para tratamento global de erros
 api.interceptors.response.use(
-  response => response,
-  error => {
+  (response) => response,
+  (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('tokenExpiration');
-      window.location.href = '/login';
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
     }
     return Promise.reject(error);
   }
 );
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const newToken = await refreshToken();
+        localStorage.setItem("token", newToken);
+        return api(originalRequest);
+      } catch (refreshError) {
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+async function refreshToken() {
+  const response = await api.post("/auth/refresh", {
+    refreshToken: localStorage.getItem("refreshToken"),
+  });
+  return response.data.token;
+}
 
 export default api;

@@ -12,7 +12,8 @@ interface Order {
   cidadeDestino: string;
   enderecoDestino: string;
   tarifaBase: number;
-  createdAt: Date;
+  createdAt: string;
+  status: string;
 }
 
 
@@ -65,7 +66,7 @@ export default function Delivery() {
     const verifyAuth = () => {
       if (!tokenManager.isValid()) {
         tokenManager.clear();
-        navigate('/login');
+        navigate('/Delivery');
       }
     };
 
@@ -75,43 +76,28 @@ export default function Delivery() {
 
   const loadDelivery = async () => {
     try {
-      const authData = tokenManager.get();
-      console.log('Dados de autenticação:', authData); // Log dos dados
-
-      if (!authData || !tokenManager.isValid()) {
-        console.error('Token inválido ou expirado');
-        tokenManager.clear();
-        navigate('/login', { state: { error: 'Sessão expirada' } }); // Feedback claro
-        return;
-      }
-
-      const { data } = await api.get('/pedido');
-      console.log('Dados recebidos:', data); // Log da resposta
-      setDelivery(validateDeliveryData(data));
+      const { data } = await api.get<Order[]>('/pedido');
+      setDelivery(data);
     } catch (error) {
-      console.error('Erro na requisição:', error);
-      handleApiError(error);
+      console.error('Erro ao carregar pedidos:', error);
     }
   };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!formRef.current?.checkValidity()) return;
 
-    const formData = Object.fromEntries(
-      Object.entries(inputs).map(([key, ref]) => [key, ref.current?.value.trim() ?? ''])
-    );
-
-    if (!validateCities(formData)) return;
+    const formData = {
+      cidadePartida: inputs.cidadePartida.current?.value || '',
+      enderecoPartida: inputs.enderecoPartida.current?.value || '',
+      cidadeDestino: inputs.cidadeDestino.current?.value || '',
+      enderecoDestino: inputs.enderecoDestino.current?.value || ''
+    };
 
     try {
-      const { data } = await api.post("/pedido", formData);
-      const newOrder = transformOrderItem(data);
-      setDelivery(prev => [...prev, newOrder]);
-      handleOrder(newOrder);
-      formRef.current?.reset();
+      const { data } = await api.post<Order>('/pedido', formData);
+      setDelivery(prev => [...prev, data]);
     } catch (error) {
-      handleApiError(error);
+      console.error('Erro ao criar pedido:', error);
     }
   };
 
@@ -158,16 +144,6 @@ export default function Delivery() {
       createdAt: new Date(item.createdAt)
     }));
   };
-
-  const transformOrderItem = (item: any): Order => ({
-    id: item._id,
-    cidadePartida: item.cidadePartida,
-    enderecoPartida: item.enderecoPartida,
-    cidadeDestino: item.cidadeDestino,
-    enderecoDestino: item.enderecoDestino,
-    tarifaBase: Number(item.tarifaBase),
-    createdAt: new Date(item.createdAt)
-  });
 
   const handleOrder = (newOrder: Order) => {
     const updatedOrders = [...pedido, newOrder];
@@ -237,20 +213,20 @@ export default function Delivery() {
           <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {delivery.map((item) => (
               <article
-                key={item.id}
+                key={item.id} // Key única no elemento pai
                 className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow p-6 relative"
               >
                 <div className="space-y-3">
-                  {Object.entries(item).map(([key, value]) => (
-                    key !== "id" && (
-                      <p key={key} className="text-blue-900">
-                        <span className="font-semibold">
-                          {key.replace(/([A-Z])/g, ' $1')}:
-                        </span>{" "}
-                        {value instanceof Date ? value.toLocaleDateString() :
-                          key === "tarifaBase" ? `R$ ${value.toFixed(2)}` : value}
-                      </p>
-                    )
+                  {Object.entries(item).map(([field, value]) => (
+                    <p
+                      key={`${item.id}-${field}`} // Key composta para elementos filhos
+                      className="text-blue-900"
+                    >
+                      <span className="font-semibold">
+                        {field.replace(/([A-Z])/g, ' $1')}:
+                      </span>{" "}
+                      {value}
+                    </p>
                   ))}
                 </div>
                 <button

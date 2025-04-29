@@ -11,11 +11,11 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const token = localStorage.getItem("token");
     if (token) {
       navigate("/delivery");
     }
-  }, []);
+  }, [navigate]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -25,32 +25,18 @@ export default function Login() {
     const email = emailRef.current?.value.trim();
     const password = passwordRef.current?.value.trim();
 
-    if (!email || !password) {
-      setError("Preencha todos os campos");
-      setIsLoading(false);
-      return;
-    }
-
-    // HandleSubmit:
     try {
       const response = await api.post('/login', { email, password });
       
-      // Armazenamento corrigido com verificação
       if (response.data?.token) {
-        localStorage.setItem('accessToken', response.data.token);
-        localStorage.setItem(
-          'tokenExpiration',
-          String(Date.now() + 8 * 60 * 60 * 1000)
-        );
-        console.log('Autenticação bem-sucedida. Token:', response.data.token); 
-      } else {
-        throw new Error('Token não recebido na resposta');
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        console.log('Autenticação bem-sucedida');
+        navigate('/historico');
       }
-      
-      navigate('/delivery');
     } catch (err: any) {
       console.error("Erro no login:", err);
-      const errorMessage = err.response?.data?.error ||
+      const errorMessage = err.response?.data?.message ||
         (err.response?.status === 401 ? "Credenciais inválidas" :
           "Erro ao realizar login. Tente novamente.");
       setError(errorMessage);

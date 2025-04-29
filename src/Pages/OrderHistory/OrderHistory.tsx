@@ -28,7 +28,7 @@ export default function OrderHistory() {
   const loadOrders = async () => {
     try {
       const token = localStorage.getItem("jwtToken");
-      const response = await api.get("/pedido/historico", {
+      const response = await api.get("/pedido", {
         headers: { Authorization: `Bearer ${token}` },
       });
 

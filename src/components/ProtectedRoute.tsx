@@ -1,5 +1,4 @@
-// ProtectedRoute.tsx
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../service/api";
 
@@ -7,18 +6,23 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('accessToken');
-      const expiration = localStorage.getItem('tokenExpiration');
-      
-      if (!token || !expiration || Date.now() > Number(expiration)) {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('tokenExpiration');
+    console.log('Verificando autenticação...');
+    const token = localStorage.getItem('token');
+    console.log('Token encontrado:', token ? 'Sim' : 'Não');
+  });
+
+  useEffect(() => {
+    const verifyAuth = async () => {
+      try {
+        // Verifica se o token é válido
+        await api.get('/auth/verify');
+      } catch (error) {
+        localStorage.removeItem('token');
         navigate('/login');
       }
     };
 
-    checkAuth();
+    verifyAuth();
   }, [navigate]);
 
   return children;
